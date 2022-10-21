@@ -1,14 +1,17 @@
 //Authors: Nick Thomas (netid: nick02) Elmin Didic (netid: edidic )
 
+///////////////////////////////////////////////////////////////////////////////////////
 //main function for this program
 main: 
 //Set up the variables
 ORRI X19, XZR, #0 // int *a
-ORRI X20, XZR, #10// (int length) 100
+ORRI X20, XZR, #100// (int length) 100
+
 //save vars
 SUBI SP, SP, #16
 STUR X19, [SP, #0]
 STUR X20, [SP, #8]
+
 //set arguments
 ORR X0, XZR, X19 // a* = a points to 
 ORR X1, XZR, X20 // set n = legth
@@ -28,17 +31,24 @@ ORRI X1, XZR, #1
 
 BL swap 
 
-ORRI X0, XZR, #1
-ORRI X1, XZR,#2 
-//multiply by 3
+// ORRI X0, XZR, #1
+// ORRI X1, XZR,#2 
+// //multiply by 3
  
-BL swap
+// BL swap
 
 BL fill_check 
 
 B end
+///////////////////////////////////////////////////////////////////////////////////////
 //fill in the array of length n with decreasing values from n -1 to zero (reverse sorted order)
 fill_array: //void fill method fill(int *a,  int n)
+
+SUBI SP, SP, #24
+STUR X19, [SP, #0]
+STUR X20, [SP, #8]
+STUR X21, [SP, #16]
+
 //move to save reg
 ORR X19, X0, XZR // int *a
 ORR X20, X1, XZR // int n
@@ -62,11 +72,17 @@ STUR X10, [X9, #0]
 ADDI X21, X21, #1
 
 B fill_the_loop
-
+///////////////////////////////////////////////////////////////////////////////////////
 fill_end:
+
+// return old values from registers
+LDUR X19, [SP, #0]
+LDUR X20, [SP, #8]
+LDUR X21, [SP, #16]
+ADDI SP, SP, #24
 //return statement 
 BR LR
-
+///////////////////////////////////////////////////////////////////////////////////////
 //testing purposes just delete after
 fill_check:
 LDUR X9, [X0, #0]
@@ -90,19 +106,184 @@ PRNT X9
 LDUR X9, [X0, #72]
 PRNT X9
 BR LR
-
+///////////////////////////////////////////////////////////////////////////////////////
 swap:			//swap takes two address arguments and swaps the data
-LSL X0, X0, #3 
-LSL X1, X1, #3 
 
-LDUR X9, [X0, #0]
-LDUR X10,[X1, #0]
-STUR X9, [X1, #0]
-STUR X10,[X0, #0]
+LDUR X9, [X0, #0] // 9 holds 0
+LDUR X10,[X1, #0] // 10 holds 1
+STUR X9, [X1, #0] // 1 takes 9
+STUR X10,[X0, #0] // 0 takes 10
+
 BR LR
-
+///////////////////////////////////////////////////////////////////////////////////////
 binary_search:
+// X0 = a*
+// X1 = start
+// X2 = end
+// X3 = value
 
+SUBI X12, XZR, #1 // index = -1
 
+SUBS X11, X2, X1 // end - start
+B.LT binary_search_return // if (end - start < 0)
 
+ADD X9, X1, X2 // start + end
+LSR X12, X9, #1 // index = (start + end) / 2
+
+LSL X9, X12, #3 // index * 8
+ADD X9, X0, X9 // a + index * 8
+LDUR X10, [X9, #0] // a[index]
+
+SUBS X11, X10, X3 // a[index] - value
+B.EQ binary_search_return // if (a[index] - value == 0)
+B.GT binary_search_recursive // if (a[index] - value > 0)
+
+// start = index + 1
+ADDI X1, X12, #1
+
+SUBI SP, SP, #8 // store return address
+STUR LR, [SP, #0]
+
+BL binary_search
+
+LDUR LR, [SP, #0]
+ADDI SP, SP, #8 // get return address back
+
+BR LR
+///////////////////////////////////////////////////////////////////////////////////////
+binary_search_recursive:
+
+// end = index - 1
+SUBI X2, X12, #1
+
+SUBI SP, SP, #8 // store return address
+STUR LR, [SP, #0]
+
+BL binary_search
+
+LDUR LR, [SP, #0]
+ADDI SP, SP, #8 // get return address back
+
+BR LR
+///////////////////////////////////////////////////////////////////////////////////////
+binary_search_return:
+
+ORR X0, X12, XZR // return index
+
+BR LR // return
+///////////////////////////////////////////////////////////////////////////////////////
+bubble_sort: // void bubble_sort(int *a, int n)
+
+// save registers we want to use
+SUBI SP, SP, #24
+STUR X19, [SP, #0]
+STUR X20, [SP, #8]
+STUR LR, [SP, #16]
+
+// move to saved registers
+ORR X19, X0, XZR // int *a
+ORR X20, X1, XZR // int n
+
+bubble_sort_loop: // while(...)
+
+// set arguments
+ORR X0, X19, XZR // int *a
+ORR X1, X20, XZR // int n
+
+// bs_swap_pass(a, n)
+BL bs_swap_pass
+
+// check return value to continue looping
+SUBIS XZR, X0, #0           // while X0 != 0
+B.NE bubble_sort_loop // continue looping
+
+//done looping, all sorted!
+
+// get data back from stack
+LDUR X19, [SP, #0]
+LDUR X20, [SP, #8]
+LDUR LR, [SP, #16]
+ADDI SP, SP, #24
+
+// return
+BR LR
+///////////////////////////////////////////////////////////////////////////////////////
+bs_swap_pass: // int bs_swap_pass(int *a, int n)
+
+// save registers we want to use
+SUBI SP, SP, #48
+STUR X19, [SP, #0]
+STUR X20, [SP, #8]
+STUR X21, [SP, #16]
+STUR X22, [SP, #24]
+STUR X23, [SP, #32]
+STUR X24, [SP, #40]
+
+// move to saved variables
+ORR X19, X0, XZR // int *a
+ORR X20, X1, XZR // int n
+ORRI X21, XZR, #0 // int num_swaps = 0
+ORRI X22, XZR, #1 // int i = 1
+///////////////////////////////////////////////////////////////////////////////////////
+bs_swap_pass_loop: // for(i = 1; i < n; i++)
+SUBS XZR, X22, X20 // i < n
+B.GE bs_swap_pass_end
+
+// get pointers in array
+SUBI X9, X22, #1 // i - 1
+LSL X9, X9, #3 // (i - 1) * 8
+ADD X23, X9, X19 // int *p = a + (i - 1) * 8
+
+LSL X10, X22, #3 // i * 8
+ADD X24, X10, X19 // int *q = a + i * 8
+
+// get values from pointers
+LDUR X9, [X23, #0]
+LDUR X10, [X24, #0]
+
+SUBS XZR, X9, X10 // if (a[i - 1] > a[i])
+B.LE bs_swap_pass_loop_end
+
+// X9 > X10:
+
+// set arguments for swap
+ORR X0, X23, XZR // int *p
+ORR X1, X24, XZR // int *q
+
+// save return location
+SUBI SP, SP, #8
+STUR LR, [SP, #0] // return
+
+// swap
+BL swap //swap(p, q)
+
+LDUR LR, [SP, #0]
+ADDI SP, SP, #8
+
+ADDI X21, X21, #1 // num_swaps++
+///////////////////////////////////////////////////////////////////////////////////////
+bs_swap_pass_loop_end:
+// end of loop
+ADDI X22, X22, #1 // i++
+B bs_swap_pass_loop
+///////////////////////////////////////////////////////////////////////////////////////
+bs_swap_pass_end:
+
+// loop is done
+
+// set return value
+ORR X0, X21, XZR // return num_swaps
+
+// get registers back from stack
+LDUR X19, [SP, #0]
+LDUR X20, [SP, #8]
+LDUR X21, [SP, #16]
+LDUR X22, [SP, #24]
+LDUR X23, [SP, #32]
+LDUR X24, [SP, #40]
+ADDI SP, SP, #48
+
+// return
+BR LR
+///////////////////////////////////////////////////////////////////////////////////////
 end:
